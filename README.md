@@ -1,6 +1,6 @@
 # Kubernetes Tutorial: multi-node kind cluster
 
-This tutorial explains how to start and manage a local Kubernetes cluster using `kind` (Kubernetes IN Docker). The cluster configuration uses **3 master (control-plane) nodes** and **2 worker nodes**, based on the local `kind/` documentation.
+This tutorial explains how to start and manage a local Kubernetes cluster using `kind` (Kubernetes IN Docker). The cluster configuration uses **3 master (control-plane) nodes** and **2 worker nodes**, based on `kind` cluster documentation.
 
 ## Prerequisites
 - [Docker](https://docs.docker.com/get-docker/) installed and running
