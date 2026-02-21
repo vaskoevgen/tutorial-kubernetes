@@ -1,9 +1,9 @@
-# Ingress with NGINX on Kind
+# Ingress with NGINX on Kind + MetalLB
 
 ## Prerequisites
 
-The `kind-config.yaml` must have `extraPortMappings` and the `ingress-ready=true` label on one worker node.
-This is already configured — just make sure you use the provided `kind-config.yaml` when creating the cluster.
+- Kind cluster is running (see `kind-config.yaml`)
+- MetalLB is installed (see [metallb.md](metallb.md))
 
 ---
 
@@ -17,33 +17,33 @@ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx && helm r
 
 ## 2. Install ingress-nginx
 
-The `nodeSelector` pins the ingress controller to the worker node that has `extraPortMappings` (port 80/443 forwarded to localhost):
-
 ```bash
 helm install ingress-nginx ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
-  --create-namespace \
-  --set controller.hostPort.enabled=true \
-  --set-string controller.extraArgs.update-status="true" \
-  --set-string controller.nodeSelector."ingress-ready"="true" \
-  --set-string controller.nodeSelector."kubernetes\.io/os"="linux"
+  --create-namespace
 ```
 
-Watch until the controller pod is Running:
+Wait until the controller gets an `EXTERNAL-IP` from MetalLB:
 
 ```bash
-kubectl get service --namespace ingress-nginx ingress-nginx-controller --output wide --watch
+kubectl get svc -n ingress-nginx ingress-nginx-controller --watch
+# EXTERNAL-IP should change from <pending> to 172.18.255.200
 ```
 
 ---
 
 ## 3. Add test.local to /etc/hosts
 
+Get the MetalLB-assigned IP and add it to `/etc/hosts`:
+
 ```bash
-echo "127.0.0.1 test.local" | sudo tee -a /etc/hosts
+LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+echo "$LB_IP test.local" | sudo tee -a /etc/hosts
 ```
 
-> This only needs to be done once per machine.
+> This only needs to be done once per machine (or when LB IP changes).
 
 ---
 
@@ -60,7 +60,7 @@ kubectl apply -f examples/test-app-for-ingress/app.yaml
 Via curl:
 
 ```bash
-curl -H "Host: test.local" http://localhost
+curl http://test.local
 ```
 
 Via browser — open: **http://test.local/**
