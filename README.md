@@ -39,3 +39,13 @@ chmod +x delete_cluster.sh
 ./delete_cluster.sh
 ```
 This will remove the `kind` Docker containers and clean up your `kubeconfig`.
+
+---
+
+## Examples & Documentation
+
+Explore the `examples/` directory for detailed guides on working with this cluster:
+
+*   **[MetalLB Setup](examples/metallb/metallb.md)**: How to configure bare-metal LoadBalancer support for Kind so your services get real IPs.
+*   **[Ingress with NGINX](examples/ingress.md)**: How to deploy an ingress controller and route traffic using MetalLB.
+*   **[etcd deep dive](examples/etcd.md)**: How to check etcd health, list HA members, and perform backup & restore operations (including Kind-specific extraction).
