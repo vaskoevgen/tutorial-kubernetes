@@ -111,35 +111,56 @@ ls -lh etcd-backup.db
 ## 4. Restore etcd
 
 > ⚠️ **Restore is destructive** — it replaces all cluster data. Only do this in a recovery scenario.
+>
+> 💡 **HA Cluster Note:** In a multi-node HA cluster (like this tutorial), restoring a snapshot is complex: you must stop etcd on **all** control-plane nodes, restore the snapshot to a new data directory on **every** node using its specific IP address, and start them all together. The procedure below demonstrates a simpler **single-node** restore for learning purposes.
 
-### Step 1 — Stop the API server (prevent writes during restore)
-
-```bash
-# On the control-plane node — move the manifest out temporarily
-sudo mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
-```
-
-### Step 2 — Restore from snapshot
+### Step 1 — Stop the API server and etcd
 
 ```bash
-etcdctl snapshot restore /tmp/etcd-backup.db \
-  --data-dir=/var/lib/etcd-restore \
-  --initial-cluster=master=https://127.0.0.1:2380 \
-  --initial-advertise-peer-urls=https://127.0.0.1:2380 \
-  --name=master
+# On the primary control-plane node (tutorial-cluster-control-plane)
+docker exec tutorial-cluster-control-plane bash -c "
+  mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
+  mv /etc/kubernetes/manifests/etcd.yaml /tmp/
+"
 ```
+
+### Step 2 — Restore from snapshot using containerd
+
+> Because Kind nodes do not have `etcdctl` installed on the host OS, we must use `ctr` to run the restore tool from the official etcd container image.
+
+```bash
+docker exec tutorial-cluster-control-plane bash -c "
+  rm -rf /var/lib/etcd-restore
+  ctr -n k8s.io run --rm \\
+    --mount type=bind,src=/var/lib,dst=/var/lib,options=rbind:rw \\
+    registry.k8s.io/etcd:3.6.6-0 restore-task \\
+    etcdutl snapshot restore /var/lib/etcd/etcd-backup.db \\
+    --data-dir=/var/lib/etcd-restore \\
+    --name=tutorial-cluster-control-plane \\
+    --initial-cluster=tutorial-cluster-control-plane=https://172.18.0.3:2380 \\
+    --initial-advertise-peer-urls=https://172.18.0.3:2380 \\
+    --initial-cluster-token=etcd-cluster-1
+"
+```
+*(Note: `172.18.0.3` is typically the IP of the first Kind node. Verify with `docker inspect` if this fails).*
 
 ### Step 3 — Update etcd to use restored data
 
 ```bash
 # Edit the etcd static pod manifest to point to new data dir
-sudo sed -i 's|/var/lib/etcd|/var/lib/etcd-restore|g' /etc/kubernetes/manifests/etcd.yaml
+docker exec tutorial-cluster-control-plane bash -c "
+  sed -i 's|/var/lib/etcd|/var/lib/etcd-restore|g' /tmp/etcd.yaml
+  sed -i 's/--initial-cluster-state=existing/--initial-cluster-state=new/g' /tmp/etcd.yaml
+"
 ```
 
-### Step 4 — Restore the API server
+### Step 4 — Restore the manifests
 
 ```bash
-sudo mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/
+docker exec tutorial-cluster-control-plane bash -c "
+  mv /tmp/etcd.yaml /etc/kubernetes/manifests/
+  mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/
+"
 ```
 
 ### Step 5 — Verify cluster recovered
