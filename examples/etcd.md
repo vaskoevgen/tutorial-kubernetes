@@ -1,6 +1,6 @@
 Check ETCD's status:
 
-```
+```bash
 kubectl exec -n kube-system etcd-tutorial-cluster-control-plane -- \
   etcdctl \
   --endpoints=https://127.0.0.1:2379 \
@@ -12,6 +12,6 @@ kubectl exec -n kube-system etcd-tutorial-cluster-control-plane -- \
 
 If the commands above fail, etcd might be crashing. Check the logs for immediate red flags:
 
-```
+```bash
 kubectl logs -n kube-system etcd-tutorial-cluster-control-plane
 ```

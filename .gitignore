@@ -1,1 +1,23 @@
+# Kind source code (submodule / cloned repo)
 kind/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Kubernetes local secrets / kubeconfig overrides
+*.kubeconfig
+kubeconfig
+
+# Helm
+*.tgz
+charts/
+
+# Logs
+*.log
