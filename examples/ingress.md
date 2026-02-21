@@ -20,7 +20,8 @@ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx && helm r
 ```bash
 helm install ingress-nginx ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
-  --create-namespace
+  --create-namespace \
+  --set-string controller.extraArgs.update-status="true"
 ```
 
 Wait until the controller gets an `EXTERNAL-IP` from MetalLB:
