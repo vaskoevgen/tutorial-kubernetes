@@ -48,4 +48,4 @@ Explore the `examples/` directory for detailed guides on working with this clust
 
 *   **[MetalLB Setup](examples/metallb/metallb.md)**: How to configure bare-metal LoadBalancer support for Kind so your services get real IPs.
 *   **[Ingress with NGINX](examples/ingress.md)**: How to deploy an ingress controller and route traffic using MetalLB.
-*   **[etcd deep dive](examples/etcd.md)**: How to check etcd health, list HA members, and perform backup & restore operations (including Kind-specific extraction).
+*   **[etcd deep dive](examples/etcd.md)**: How to check etcd health, list HA members, and perform backup & restore operations. (Note: The `etcd-backup.db` file generated during the tutorial is ignored by Git to prevent accidentally committing sensitive cluster state).

@@ -21,3 +21,5 @@ charts/
 
 # Logs
 *.log
+
+etcd-backup.db
