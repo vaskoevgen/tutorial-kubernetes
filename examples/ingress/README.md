@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Kind cluster is running (see `kind-config.yaml`)
-- MetalLB is installed (see [metallb.md](metallb.md))
+- MetalLB is installed (see [../metallb/metallb.md](../metallb/metallb.md))
 
 ---
 
@@ -51,7 +51,7 @@ echo "$LB_IP test.local" | sudo tee -a /etc/hosts
 ## 4. Deploy the test app
 
 ```bash
-kubectl apply -f examples/test-app-for-ingress/app.yaml
+kubectl apply -f examples/ingress/app.yaml
 ```
 
 ---
@@ -94,7 +94,7 @@ Expected response: `Hello from KIND Cluster!`
 
 ```bash
 # Remove test app
-kubectl delete -f examples/test-app-for-ingress/app.yaml
+kubectl delete -f examples/ingress/app.yaml
 
 # Remove ingress controller
 helm delete ingress-nginx -n ingress-nginx
