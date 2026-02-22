@@ -56,15 +56,35 @@ kubectl apply -f examples/test-app-for-ingress/app.yaml
 
 ---
 
-## 5. Test
+## 5. Enable HTTPS (TLS)
 
-Via curl:
+To secure the ingress with HTTPS, generate a self-signed certificate and store it in a Kubernetes Secret:
 
 ```bash
-curl http://test.local
+# 1. Generate a self-signed certificate for test.local
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt -subj "/CN=test.local/O=test.local"
+
+# 2. Create a Kubernetes Secret containing the certificate
+kubectl create secret tls test-local-tls --key tls.key --cert tls.crt
+
+# 3. Clean up the local files
+rm tls.key tls.crt
 ```
 
-Via browser — open: **http://test.local/**
+The provided `app.yaml` is already configured to use the `test-local-tls` secret.
+
+---
+
+## 6. Test
+
+Via curl (using `-k` to accept the self-signed warning):
+
+```bash
+curl -k https://test.local
+```
+
+Via browser — open: **https://test.local/** (you will likely need to bypass a browser security warning because the certificate is self-signed).
 
 Expected response: `Hello from KIND Cluster!`
 
