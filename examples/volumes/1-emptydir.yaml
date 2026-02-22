@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-emptydir
+  labels:
+    app: busybox-emptydir
+spec:
+  containers:
+    - name: writer
+      image: busybox:1.36
+      command:
+        [
+          "sh",
+          "-c",
+          'while true; do echo "Writing data at $(date)" >> /data/shared/index.txt; sleep 5; done',
+        ]
+      volumeMounts:
+        - name: shared-storage
+          mountPath: /data/shared
+
+    - name: reader
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: shared-storage
+          mountPath: /usr/share/nginx/html # Nginx serves files from here
+
+  volumes:
+    - name: shared-storage
+      emptyDir: {}
