@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Kind cluster is running (see `kind-config.yaml`)
-- MetalLB is installed (see [../metallb/metallb.md](../metallb/metallb.md))
+- MetalLB is installed (see [../metallb/README.md](../metallb/README.md))
 
 ---
 

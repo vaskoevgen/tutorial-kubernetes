@@ -17,7 +17,7 @@ An `emptyDir` volume is created when a Pod is assigned to a node and exists as l
 Apply the provided `emptyDir` example:
 
 ```bash
-kubectl apply -f 1-emptydir.yaml
+kubectl apply -f examples/volumes/1-emptydir.yaml
 ```
 
 Wait until the Pod is running:
@@ -28,7 +28,7 @@ kubectl get pods
 
 ### How it Works
 
-The YAML file (`1-emptydir.yaml`) launches **one Pod** containing **two containers**:
+The YAML file (`examples/volumes/1-emptydir.yaml`) launches **one Pod** containing **two containers**:
 
 1.  **`writer` (busybox)**: Runs a continuous loop appending the current date into `/data/shared/index.txt` every 5 seconds.
 2.  **`reader` (nginx)**: Exposes a web server that serves static files from `/usr/share/nginx/html`.
@@ -55,7 +55,7 @@ You should see an output log growing with lines like `Writing data at...`. The `
 When done testing, kill the port-forward process (e.g., `kill %1`) and delete the pod:
 
 ```bash
-kubectl delete -f 1-emptydir.yaml
+kubectl delete -f examples/volumes/1-emptydir.yaml
 ```
 
 **⚠️ Important:** Because this is an `emptyDir`, all the data stored within it is permanently deleted as soon as the Pod is removed.
@@ -73,7 +73,7 @@ In a managed Kubernetes cluster (like EKS or GKE) or Kind, creating a PVC dynami
 Apply the standard PVC and Deployment manifests:
 
 ```bash
-kubectl apply -f 2-pvc-deployment.yaml
+kubectl apply -f examples/volumes/2-pvc-deployment.yaml
 ```
 
 ### How it Works
@@ -119,7 +119,11 @@ Now, re-access the Pod (stop your previous port-forward and start a new one to t
 ```bash
 kill %1
 kubectl port-forward deploy/nginx-deployment-pv 8080:80 &
+```
 
+Now, check the contents by running `curl`:
+
+```bash
 curl http://localhost:8080
 ```
 
@@ -130,6 +134,6 @@ You will still receive `<h1>Persistent Data Survives!</h1>`. Even though the ori
 To fully wipe the deployment and the underlying data storage:
 
 ```bash
-kubectl delete -f 2-pvc-deployment.yaml
+kubectl delete -f examples/volumes/2-pvc-deployment.yaml
 kill %1
 ```

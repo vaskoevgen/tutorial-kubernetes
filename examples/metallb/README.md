@@ -43,7 +43,7 @@ This creates:
 
 ## 3. Verify
 
-Any `LoadBalancer` service now gets an `EXTERNAL-IP`:
+Any `LoadBalancer` service now gets an `EXTERNAL-IP` if ingress-nginx is installed:
 
 ```bash
 kubectl get svc -A | grep LoadBalancer
