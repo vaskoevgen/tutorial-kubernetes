@@ -171,3 +171,40 @@ hello from version 1
 hello from version 1
 ...
 ```
+
+---
+
+## How it works
+
+When you send a request to the Istio Gateway, the traffic flows through several components before reaching the destination application. Here is a high-level overview of the traffic routing based on the resources we deployed:
+
+```text
+Your machine
+     │
+     │  curl http://172.18.255.200/
+     ▼
+MetalLB L2 (ARP)
+     │  172.18.255.200 → tutorial-cluster worker node
+     ▼
+istio-ingressgateway (Envoy Proxy in istio-system)
+     │  matches Gateway rules (port 80)
+     │  evaluates VirtualService (hello-world)
+     │  splits traffic 50% / 50%
+     ▼
+   ┌─┴─┐
+50%│   │50%
+   ▼   ▼
+hello-world-v1 pod         hello-world-v2 pod
+(Envoy Sidecar proxy)      (Envoy Sidecar proxy)
+   │                          │
+   ▼                          ▼
+hello-world container      hello-world container
+(localhost:5678)           (localhost:5678)
+```
+
+1. **MetalLB** announces the `172.18.255.200` IP to your local network, routing the TCP connection into the cluster.
+2. The **Istio Ingress Gateway** receives the connection. The `Gateway` resource (`hello-gateway`) tells it to listen on HTTP port 80.
+3. The **VirtualService** (`hello-world`) is bound to that Gateway. It defines a rule to route 50% of the traffic to the `v1` subset and 50% to the `v2` subset.
+4. The **DestinationRule** (`hello-world`) defines what those subsets actually are by matching the `version: v1` and `version: v2` labels on the deployment pods.
+5. The Ingress Gateway forwards the traffic directly to the **Envoy Sidecar** proxy running inside the chosen pod.
+6. The Sidecar forwards the traffic to the actual `hashicorp/http-echo` container listening on port 5678.

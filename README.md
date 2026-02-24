@@ -50,3 +50,4 @@ Explore the `examples/` directory for detailed guides on working with this clust
 *   **[Ingress with NGINX](examples/ingress/README.md)**: How to deploy an ingress controller and route traffic using MetalLB.
 *   **[Kubernetes Volumes](examples/volumes/README.md)**: How to use `emptyDir` and `PersistentVolumeClaim` (PVC) for pods and deployments.
 *   **[etcd deep dive](examples/README.md)**: How to check etcd health, list HA members, and perform backup & restore operations. (Note: The `etcd-backup.db` file generated during the tutorial is ignored by Git to prevent accidentally committing sensitive cluster state).
+*   **[Istio Service Mesh](examples/istio/README.md)**: How to install Istio, configure automatic sidecar injection, and test traffic routing functionality.
