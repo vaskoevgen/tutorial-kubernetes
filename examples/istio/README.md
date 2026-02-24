@@ -208,3 +208,68 @@ hello-world container      hello-world container
 4. The **DestinationRule** (`hello-world`) defines what those subsets actually are by matching the `version: v1` and `version: v2` labels on the deployment pods.
 5. The Ingress Gateway forwards the traffic directly to the **Envoy Sidecar** proxy running inside the chosen pod.
 6. The Sidecar forwards the traffic to the actual `hashicorp/http-echo` container listening on port 5678.
+
+### The Configuration Files
+
+The routing is controlled by three main Istio Custom Resource Definitions (CRDs) defined in `istio-routing.yaml`:
+
+**1. Gateway**
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: hello-gateway
+spec:
+  selector:
+    istio: ingressgateway # Binds to the default Istio Ingress Controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*" # Accepts traffic for any host/domain
+```
+The `Gateway` configures the LoadBalancer (the Envoy proxy running at the edge of the mesh) to open port 80 and accept incoming HTTP traffic for all domains.
+
+**2. DestinationRule**
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: hello-world
+spec:
+  host: hello-world # The corresponding Kubernetes Service name
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+```
+The `DestinationRule` looks at all pods backing the `hello-world` service and groups them into logical "subsets" based on their Kubernetes labels (`version: v1` and `version: v2`). 
+
+**3. VirtualService**
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: hello-world
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - hello-gateway # Binds this routing rule to the Gateway we defined above
+  http:
+  - route:
+    - destination:
+        host: hello-world
+        subset: v1      # Uses the subset defined in the DestinationRule
+      weight: 50        # Sends 50% of traffic here
+    - destination:
+        host: hello-world
+        subset: v2
+      weight: 50
+```
+The `VirtualService` acts as the traffic router. It takes traffic from the `hello-gateway` and defines the rules (in this case, sending exactly 50% of the requests to subset `v1` and 50% to subset `v2`).
