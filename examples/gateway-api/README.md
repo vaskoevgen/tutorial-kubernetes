@@ -85,8 +85,7 @@ Check it is `Programmed` and has received a MetalLB IP:
 ```bash
 kubectl get gateway api-gateway -n nginx-gateway
 kubectl get svc api-gateway-nginx -n nginx-gateway
-# EXTERNAL-IP should show an IP from the MetalLB pool (e.g. 172.20.255.200)
-# The exact IP depends on your Docker network subnet — see ../metallb/README.md
+# EXTERNAL-IP should show 172.18.255.200
 ```
 
 ---
@@ -109,19 +108,13 @@ kubectl get httproute api-route -n default
 
 ---
 
-## 7. Add api.local to /etc/hosts (if not already done)
+## 7. Add api.local to /etc/hosts
 
 ```bash
 LB_IP=$(kubectl get svc api-gateway-nginx -n nginx-gateway \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 echo "$LB_IP api.local" | sudo tee -a /etc/hosts
-```
-
-Or hardcode the IP directly if you already know it:
-
-```bash
-echo "172.20.255.200 api.local" | sudo tee -a /etc/hosts
 ```
 
 ---
@@ -131,12 +124,14 @@ echo "172.20.255.200 api.local" | sudo tee -a /etc/hosts
 ```bash
 # Main API — catch-all rule
 curl http://api.local/
-# Hello from main API service!
 
 # Stripe webhook — routes directly to the payment namespace
 curl -X POST http://api.local/payment/webhooks/stripe
-# Hello from payment service — Stripe webhook received!
 ```
+
+Expected responses:
+- `/` → `Hello from main API service!`
+- `/payment/webhooks/stripe` → `Hello from payment service — Stripe webhook received!`
 
 ---
 
@@ -144,9 +139,8 @@ curl -X POST http://api.local/payment/webhooks/stripe
 
 ### Linux
 
-Works out of the box. Docker runs natively so the Kind network (e.g. `172.18.x.x` or `172.20.x.x`
-depending on your Docker installation) is directly routable from the host — MetalLB IPs are
-reachable without any extra setup.
+Works out of the box. Docker runs natively so the Kind network (`172.18.x.x`) is directly
+routable from the host — MetalLB IPs are reachable without any extra setup.
 
 ### macOS (Docker Desktop)
 
