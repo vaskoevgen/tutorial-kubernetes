@@ -10,6 +10,11 @@ It separates routing concerns into three distinct resources — **GatewayClass**
 - Kind cluster is running (see `kind-config.yaml`)
 - MetalLB is installed and configured (see [../metallb/README.md](../metallb/README.md))
 
+> **Note**: Use a single control plane Kind cluster (see `kind-config.yaml`). Multi control plane
+> clusters add an HAProxy container that load balances kubectl traffic — it can fail to restart
+> after the machine sleeps/reboots, leaving the cluster unreachable. A single control plane has
+> no HAProxy and no this problem. MetalLB and the Gateway API are unaffected.
+
 ---
 
 ## 1. Install Gateway API CRDs
@@ -31,19 +36,18 @@ kubectl get crd gateways.gateway.networking.k8s.io httproutes.gateway.networking
 ## 2. Install NGINX Gateway Fabric
 
 NGINX Gateway Fabric is the NGINX implementation of the Gateway API spec.
-Install it via Helm — the chart also creates the `GatewayClass` automatically:
+Install it via Helm into the `default` namespace — the chart also creates the `GatewayClass` automatically:
 
 ```bash
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
-  --namespace nginx-gateway \
-  --create-namespace \
+  --namespace default \
   --set service.type=LoadBalancer
 ```
 
 Wait until the controller pod is running:
 
 ```bash
-kubectl get pods -n nginx-gateway --watch
+kubectl get pods -n default --watch | grep ngf
 ```
 
 > In NGF v2.x the data plane (nginx) pod and its `LoadBalancer` service are provisioned
@@ -77,14 +81,14 @@ This creates:
 kubectl apply -f examples/gateway-api/2-gateway.yaml
 ```
 
-This creates the **Gateway** (declares an HTTP listener on port 80 that accepts routes from any namespace).
+This creates the **Gateway** in the `default` namespace (same namespace as NGF).
 The `GatewayClass` named `nginx` was already created by the Helm chart.
 
 Check it is `Programmed` and has received a MetalLB IP:
 
 ```bash
-kubectl get gateway api-gateway -n nginx-gateway
-kubectl get svc api-gateway-nginx -n nginx-gateway
+kubectl get gateway api-gateway -n default
+kubectl get svc api-gateway-nginx -n default
 # EXTERNAL-IP should show an IP from the MetalLB pool (e.g. 172.20.255.200)
 # The exact IP depends on your Docker network subnet — see ../metallb/README.md
 ```
@@ -99,12 +103,13 @@ kubectl apply -f examples/gateway-api/3-httproutes.yaml
 
 This creates:
 - A **ReferenceGrant** in the `payment` namespace — grants the `HTTPRoute` in `default` permission to reference the `payment` Service across namespaces
-- An **HTTPRoute** in the `default` namespace — routes `/payment/webhooks/stripe` to the payment service and everything else to the main API
+- An **HTTPRoute** `api-stripe-webhook` — routes `/payment/webhooks/stripe` to the payment service
+- An **HTTPRoute** `api-default-backend` — catch-all, routes everything else to the main API
 
-Check the route is accepted:
+Check the routes are accepted:
 
 ```bash
-kubectl get httproute api-route -n default
+kubectl get httproute -n default
 ```
 
 ---
@@ -112,7 +117,7 @@ kubectl get httproute api-route -n default
 ## 7. Add api.local to /etc/hosts (if not already done)
 
 ```bash
-LB_IP=$(kubectl get svc api-gateway-nginx -n nginx-gateway \
+LB_IP=$(kubectl get svc api-gateway-nginx -n default \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 echo "$LB_IP api.local" | sudo tee -a /etc/hosts
@@ -154,7 +159,7 @@ MetalLB IPs are inside Docker Desktop's Linux VM and are **not** routable from y
 Use `kubectl port-forward` as a workaround:
 
 ```bash
-kubectl port-forward -n nginx-gateway svc/api-gateway-nginx 8080:80
+kubectl port-forward -n default svc/api-gateway-nginx 8080:80
 ```
 
 Then test with an explicit `Host` header:
@@ -185,8 +190,14 @@ MetalLB IPs will then be reachable directly from your Mac — no port-forward ne
 client
   │
   ▼
-Gateway (nginx-gateway namespace)
-  │  listener: HTTP :80  ←  MetalLB assigns a real external IP
+MetalLB IP (e.g. 172.20.255.200)
+  │  announced via ARP on Docker bridge network
+  │
+  ▼
+api-gateway-nginx Service (LoadBalancer) — default namespace
+  │
+  ▼
+NGF nginx pod — default namespace
   │
   ▼
 HTTPRoute (default namespace)
@@ -248,6 +259,37 @@ could not be translated automatically so you can handle it manually.
 
 ---
 
+## Troubleshooting
+
+### Cluster unreachable after machine restart (HA clusters only)
+
+If you used a multi control plane `kind-config.yaml`, Kind creates an HAProxy container
+(`<cluster>-external-load-balancer`) to load balance kubectl traffic across the control planes.
+This container does not always restart automatically, leaving all nodes `NotReady`.
+
+Fix:
+```bash
+docker start <cluster-name>-external-load-balancer
+```
+
+Prevent it from happening again:
+```bash
+docker update --restart=always <cluster-name>-external-load-balancer
+```
+
+The simplest solution is to use a single control plane cluster — no HAProxy container is created
+and the problem never occurs. See `kind-config.yaml`.
+
+### MetalLB IP unreachable after cluster restart
+
+The MetalLB speaker DaemonSet may not re-announce the IP after all nodes recover. Fix:
+
+```bash
+kubectl rollout restart daemonset/speaker -n metallb-system
+```
+
+---
+
 ## Cleanup
 
 ```bash
@@ -255,7 +297,6 @@ kubectl delete -f examples/gateway-api/3-httproutes.yaml
 kubectl delete -f examples/gateway-api/2-gateway.yaml
 kubectl delete -f examples/gateway-api/1-apps.yaml
 kubectl delete namespace payment
-helm uninstall ngf -n nginx-gateway
-kubectl delete namespace nginx-gateway
+helm uninstall ngf -n default
 kubectl delete -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
 ```
