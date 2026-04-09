@@ -85,7 +85,8 @@ Check it is `Programmed` and has received a MetalLB IP:
 ```bash
 kubectl get gateway api-gateway -n nginx-gateway
 kubectl get svc api-gateway-nginx -n nginx-gateway
-# EXTERNAL-IP should show 172.18.255.200
+# EXTERNAL-IP should show an IP from the MetalLB pool (e.g. 172.20.255.200)
+# The exact IP depends on your Docker network subnet — see ../metallb/README.md
 ```
 
 ---
@@ -139,8 +140,9 @@ Expected responses:
 
 ### Linux
 
-Works out of the box. Docker runs natively so the Kind network (`172.18.x.x`) is directly
-routable from the host — MetalLB IPs are reachable without any extra setup.
+Works out of the box. Docker runs natively so the Kind network (e.g. `172.18.x.x` or `172.20.x.x`
+depending on your Docker installation) is directly routable from the host — MetalLB IPs are
+reachable without any extra setup.
 
 ### macOS (Docker Desktop)
 
