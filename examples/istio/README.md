@@ -140,10 +140,11 @@ export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
 
 ### 4. Test the Traffic Routing
 
-Send multiple requests to the Gateway URL (e.g. `172.18.255.200` from MetalLB). Because the `VirtualService` is configured for a 50/50 split, you should see the responses alternating roughly evenly between "hello from version 1" and "hello from version 2":
+First get the MetalLB-assigned IP, then send multiple requests. Because the `VirtualService` is configured for a 50/50 split, you should see the responses alternating roughly evenly between "hello from version 1" and "hello from version 2":
 
 ```bash
-for i in {1..10}; do curl -s "http://172.18.255.200/"; echo; done
+GW_IP=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+for i in {1..10}; do curl -s "http://$GW_IP/"; echo; done
 ```
 
 ### Alternative: Testing via Port-Forwarding
@@ -181,10 +182,10 @@ When you send a request to the Istio Gateway, the traffic flows through several 
 ```text
 Your machine
      │
-     │  curl http://172.18.255.200/
+     │  curl http://<MetalLB-IP>/
      ▼
 MetalLB L2 (ARP)
-     │  172.18.255.200 → tutorial-cluster worker node
+     │  <MetalLB-IP> → tutorial-cluster worker node
      ▼
 istio-ingressgateway (Envoy Proxy in istio-system)
      │  matches Gateway rules (port 80)
@@ -202,7 +203,7 @@ hello-world container      hello-world container
 (localhost:5678)           (localhost:5678)
 ```
 
-1. **MetalLB** announces the `172.18.255.200` IP to your local network, routing the TCP connection into the cluster.
+1. **MetalLB** announces the assigned IP to your local network, routing the TCP connection into the cluster.
 2. The **Istio Ingress Gateway** receives the connection. The `Gateway` resource (`hello-gateway`) tells it to listen on HTTP port 80.
 3. The **VirtualService** (`hello-world`) is bound to that Gateway. It defines a rule to route 50% of the traffic to the `v1` subset and 50% to the `v2` subset.
 4. The **DestinationRule** (`hello-world`) defines what those subsets actually are by matching the `version: v1` and `version: v2` labels on the deployment pods.
