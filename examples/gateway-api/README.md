@@ -109,13 +109,19 @@ kubectl get httproute api-route -n default
 
 ---
 
-## 7. Add api.local to /etc/hosts
+## 7. Add api.local to /etc/hosts (if not already done)
 
 ```bash
 LB_IP=$(kubectl get svc api-gateway-nginx -n nginx-gateway \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 echo "$LB_IP api.local" | sudo tee -a /etc/hosts
+```
+
+Or hardcode the IP directly if you already know it:
+
+```bash
+echo "172.20.255.200 api.local" | sudo tee -a /etc/hosts
 ```
 
 ---
@@ -125,14 +131,12 @@ echo "$LB_IP api.local" | sudo tee -a /etc/hosts
 ```bash
 # Main API — catch-all rule
 curl http://api.local/
+# Hello from main API service!
 
 # Stripe webhook — routes directly to the payment namespace
 curl -X POST http://api.local/payment/webhooks/stripe
+# Hello from payment service — Stripe webhook received!
 ```
-
-Expected responses:
-- `/` → `Hello from main API service!`
-- `/payment/webhooks/stripe` → `Hello from payment service — Stripe webhook received!`
 
 ---
 
