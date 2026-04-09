@@ -26,17 +26,21 @@ Find the Docker bridge subnet:
 
 ```bash
 docker network inspect kind --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
-# e.g. 172.18.0.0/16
+# e.g. 172.18.0.0/16 or 172.20.0.0/16 — the exact value depends on your Docker installation
 ```
 
-Apply the IP pool config using the upper range of that subnet:
+> **Important**: open `examples/metallb/metallb-config.yaml` and update the `addresses` range to use
+> the upper range of your actual subnet before applying. For example, if your subnet is `172.20.0.0/16`,
+> use `172.20.255.200-172.20.255.250`.
+
+Apply the IP pool config:
 
 ```bash
 kubectl apply -f examples/metallb/metallb-config.yaml
 ```
 
 This creates:
-- **`IPAddressPool`** — allocates IPs from `172.18.255.200–172.18.255.250`
+- **`IPAddressPool`** — allocates IPs from the upper range of your kind Docker subnet
 - **`L2Advertisement`** — advertises IPs via ARP so they are reachable from your machine
 
 ---
@@ -47,13 +51,14 @@ Any `LoadBalancer` service now gets an `EXTERNAL-IP` if ingress-nginx is install
 
 ```bash
 kubectl get svc -A | grep LoadBalancer
-# EXTERNAL-IP should show 172.18.255.200 (not <pending>)
+# EXTERNAL-IP should show an IP from your pool (e.g. 172.20.255.200) — not <pending>
 ```
 
 Test directly:
 
 ```bash
-curl http://172.18.255.200
+# Replace with the actual EXTERNAL-IP shown above
+curl http://<EXTERNAL-IP>
 ```
 
 ---
@@ -63,10 +68,10 @@ curl http://172.18.255.200
 ```
 Your machine
      │
-     │  curl http://172.18.255.200
+     │  curl http://<MetalLB-IP>
      ▼
 MetalLB L2 (ARP)
-     │  172.18.255.200 → tutorial-cluster-worker node
+     │  <MetalLB-IP> → tutorial-cluster-worker node
      ▼
 ingress-nginx-controller (any worker node)
      │  matches Host header

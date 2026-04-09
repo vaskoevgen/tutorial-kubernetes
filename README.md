@@ -51,3 +51,4 @@ Explore the `examples/` directory for detailed guides on working with this clust
 *   **[Kubernetes Volumes](examples/volumes/README.md)**: How to use `emptyDir` and `PersistentVolumeClaim` (PVC) for pods and deployments.
 *   **[etcd deep dive](examples/README.md)**: How to check etcd health, list HA members, and perform backup & restore operations. (Note: The `etcd-backup.db` file generated during the tutorial is ignored by Git to prevent accidentally committing sensitive cluster state).
 *   **[Istio Service Mesh](examples/istio/README.md)**: How to install Istio, configure automatic sidecar injection, and test traffic routing functionality.
+*   **[Gateway API with NGINX Gateway Fabric](examples/gateway-api/README.md)**: How to use the Kubernetes Gateway API (the official successor to Ingress) with NGINX Gateway Fabric — covers GatewayClass, Gateway, HTTPRoute, cross-namespace routing with ReferenceGrant, and migration from Ingress using `ingress2gateway`.

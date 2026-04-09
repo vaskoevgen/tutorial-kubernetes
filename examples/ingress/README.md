@@ -28,7 +28,7 @@ Wait until the controller gets an `EXTERNAL-IP` from MetalLB:
 
 ```bash
 kubectl get svc -n ingress-nginx ingress-nginx-controller --watch
-# EXTERNAL-IP should change from <pending> to 172.18.255.200
+# EXTERNAL-IP should change from <pending> to an IP from the MetalLB pool (e.g. 172.20.255.200)
 ```
 
 ---
