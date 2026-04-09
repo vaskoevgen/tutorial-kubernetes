@@ -1,6 +1,9 @@
 # Kind source code (submodule / cloned repo)
 kind/
 
+# Local dev environment (machine-specific)
+.envrc
+
 # OS
 .DS_Store
 Thumbs.db

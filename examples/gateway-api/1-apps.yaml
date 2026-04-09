@@ -1,0 +1,74 @@
+# Main API — default namespace
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main-api
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: main-api
+  template:
+    metadata:
+      labels:
+        app: main-api
+    spec:
+      containers:
+        - name: main-api
+          image: hashicorp/http-echo:latest
+          args:
+            - "-text=Hello from main API service!"
+            - "-listen=:8080"
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: default
+spec:
+  selector:
+    app: main-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+# Payment service — payment namespace
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+        - name: payment
+          image: hashicorp/http-echo:latest
+          args:
+            - "-text=Hello from payment service — Stripe webhook received!"
+            - "-listen=:1550"
+          ports:
+            - containerPort: 1550
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: payment
+spec:
+  selector:
+    app: payment
+  ports:
+    - port: 1550
+      targetPort: 1550
