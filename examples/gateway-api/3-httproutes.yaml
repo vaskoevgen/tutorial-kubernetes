@@ -1,4 +1,4 @@
-# Allow the HTTPRoute in "default" namespace to reference the Service in "payment" namespace.
+# Allow the HTTPRoute in 'default' namespace to reference the Service in 'payment' namespace.
 # Without this ReferenceGrant the cross-namespace backendRef is rejected by the controller.
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
@@ -22,6 +22,7 @@ metadata:
 spec:
   parentRefs:
     - name: api-gateway
+      namespace: nginx-gateway
   hostnames:
     - "api.local"
   rules:

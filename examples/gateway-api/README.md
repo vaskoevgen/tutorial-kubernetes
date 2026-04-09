@@ -31,18 +31,19 @@ kubectl get crd gateways.gateway.networking.k8s.io httproutes.gateway.networking
 ## 2. Install NGINX Gateway Fabric
 
 NGINX Gateway Fabric is the NGINX implementation of the Gateway API spec.
-Install it via Helm into the `default` namespace — the chart also creates the `GatewayClass` automatically:
+Install it via Helm — the chart also creates the `GatewayClass` automatically:
 
 ```bash
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
-  --namespace default \
+  --namespace nginx-gateway \
+  --create-namespace \
   --set service.type=LoadBalancer
 ```
 
 Wait until the controller pod is running:
 
 ```bash
-kubectl get pods -n default --watch | grep ngf
+kubectl get pods -n nginx-gateway --watch
 ```
 
 > In NGF v2.x the data plane (nginx) pod and its `LoadBalancer` service are provisioned
@@ -76,16 +77,15 @@ This creates:
 kubectl apply -f examples/gateway-api/2-gateway.yaml
 ```
 
-This creates the **Gateway** in the `default` namespace (same namespace as NGF controller).
+This creates the **Gateway** (declares an HTTP listener on port 80 that accepts routes from any namespace).
 The `GatewayClass` named `nginx` was already created by the Helm chart.
 
 Check it is `Programmed` and has received a MetalLB IP:
 
 ```bash
-kubectl get gateway api-gateway -n default
-kubectl get svc api-gateway-nginx -n default
-# EXTERNAL-IP should show an IP from the MetalLB pool (e.g. 172.20.255.200)
-# The exact IP depends on your Docker network subnet — see ../metallb/README.md
+kubectl get gateway api-gateway -n nginx-gateway
+kubectl get svc api-gateway-nginx -n nginx-gateway
+# EXTERNAL-IP should show 172.18.255.200
 ```
 
 ---
@@ -108,19 +108,13 @@ kubectl get httproute api-route -n default
 
 ---
 
-## 7. Add api.local to /etc/hosts (if not already done)
+## 7. Add api.local to /etc/hosts
 
 ```bash
-LB_IP=$(kubectl get svc api-gateway-nginx -n default \
+LB_IP=$(kubectl get svc api-gateway-nginx -n nginx-gateway \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 echo "$LB_IP api.local" | sudo tee -a /etc/hosts
-```
-
-Or hardcode the IP directly if you already know it:
-
-```bash
-echo "172.20.255.200 api.local" | sudo tee -a /etc/hosts
 ```
 
 ---
@@ -130,12 +124,14 @@ echo "172.20.255.200 api.local" | sudo tee -a /etc/hosts
 ```bash
 # Main API — catch-all rule
 curl http://api.local/
-# Hello from main API service!
 
 # Stripe webhook — routes directly to the payment namespace
 curl -X POST http://api.local/payment/webhooks/stripe
-# Hello from payment service — Stripe webhook received!
 ```
+
+Expected responses:
+- `/` → `Hello from main API service!`
+- `/payment/webhooks/stripe` → `Hello from payment service — Stripe webhook received!`
 
 ---
 
@@ -143,9 +139,8 @@ curl -X POST http://api.local/payment/webhooks/stripe
 
 ### Linux
 
-Works out of the box. Docker runs natively so the Kind network (e.g. `172.18.x.x` or `172.20.x.x`
-depending on your Docker installation) is directly routable from the host — MetalLB IPs are
-reachable without any extra setup.
+Works out of the box. Docker runs natively so the Kind network (`172.18.x.x`) is directly
+routable from the host — MetalLB IPs are reachable without any extra setup.
 
 ### macOS (Docker Desktop)
 
@@ -153,7 +148,7 @@ MetalLB IPs are inside Docker Desktop's Linux VM and are **not** routable from y
 Use `kubectl port-forward` as a workaround:
 
 ```bash
-kubectl port-forward -n default svc/api-gateway-nginx 8080:80
+kubectl port-forward -n nginx-gateway svc/api-gateway-nginx 8080:80
 ```
 
 Then test with an explicit `Host` header:
@@ -184,7 +179,7 @@ MetalLB IPs will then be reachable directly from your Mac — no port-forward ne
 client
   │
   ▼
-Gateway (default namespace)
+Gateway (nginx-gateway namespace)
   │  listener: HTTP :80  ←  MetalLB assigns a real external IP
   │
   ▼
@@ -254,6 +249,7 @@ kubectl delete -f examples/gateway-api/3-httproutes.yaml
 kubectl delete -f examples/gateway-api/2-gateway.yaml
 kubectl delete -f examples/gateway-api/1-apps.yaml
 kubectl delete namespace payment
-helm uninstall ngf -n default
+helm uninstall ngf -n nginx-gateway
+kubectl delete namespace nginx-gateway
 kubectl delete -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
 ```
