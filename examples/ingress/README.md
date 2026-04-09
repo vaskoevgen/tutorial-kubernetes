@@ -90,9 +90,76 @@ Expected response: `Hello from KIND Cluster!`
 
 ---
 
+## 7. Path-based routing across namespaces
+
+This example shows how to route specific paths to different backend services living in separate namespaces — a common pattern for webhook endpoints (e.g. payment providers that POST to a fixed URL).
+
+### How it works
+
+```
+client
+  │
+  ├─ POST /payment/webhooks/stripe  ──► payment-service-proxy (ExternalName)
+  │                                          │
+  │                                          └──► payment.payment.svc.cluster.local:1550
+  │
+  └─ GET /                          ──► api-service (default namespace, port 80)
+```
+
+The `ExternalName` service acts as a DNS alias, bridging the `default` namespace ingress to the `payment` namespace service without needing to expose it externally.
+
+### Key annotations
+
+| Annotation | Value | Why |
+|---|---|---|
+| `proxy-buffering` | `off` | Forwards raw bytes — required for HMAC signature verification (e.g. Stripe) |
+| `proxy-body-size` | `0` | Removes nginx's 1MB body limit to prevent `413` rejections |
+
+### Deploy
+
+Create the `payment` namespace and deploy both mock services:
+
+```bash
+kubectl create namespace payment
+kubectl apply -f examples/ingress/main-api.yaml
+kubectl apply -f examples/ingress/payment-service.yaml
+kubectl apply -f examples/ingress/ingress.yaml
+```
+
+Add `api.local` to `/etc/hosts`:
+
+```bash
+LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+echo "$LB_IP api.local" | sudo tee -a /etc/hosts
+```
+
+### Test
+
+```bash
+# Main API — catch-all via defaultBackend
+curl http://api.local/
+
+# Webhook path — routes to payment namespace
+curl -X POST http://api.local/payment/webhooks/stripe
+```
+
+Expected responses:
+- `/` → `Hello from main API service!`
+- `/payment/webhooks/stripe` → `Hello from payment service — webhook received!`
+
+---
+
 ## Cleanup
 
 ```bash
+# Remove path-based routing example
+kubectl delete -f examples/ingress/ingress.yaml
+kubectl delete -f examples/ingress/main-api.yaml
+kubectl delete -f examples/ingress/payment-service.yaml
+kubectl delete namespace payment
+
 # Remove test app
 kubectl delete -f examples/ingress/app.yaml
 

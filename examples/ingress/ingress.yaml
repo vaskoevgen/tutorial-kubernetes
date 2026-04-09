@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service-proxy
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: payment.payment.svc.cluster.local
+  ports:
+    - port: 1550
+      targetPort: 1550
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/backend-protocol: http
+    nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  defaultBackend:
+    service:
+      name: api-service
+      port:
+        name: service
+  rules:
+    - host: api.local
+      http:
+        paths:
+          - path: /payment/webhooks/stripe
+            pathType: Exact
+            backend:
+              service:
+                name: payment-service-proxy
+                port:
+                  number: 1550

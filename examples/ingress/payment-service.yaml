@@ -1,0 +1,38 @@
+# Mock payment service (payment namespace)
+# Simulates the real payment service on port 1550
+# Handles POST /webhooks/stripe
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+        - name: payment
+          image: hashicorp/http-echo:latest
+          args:
+            - "-text=Hello from payment service — Stripe webhook received!"
+            - "-listen=:1550"
+          ports:
+            - containerPort: 1550
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: payment
+spec:
+  selector:
+    app: payment
+  ports:
+    - port: 1550
+      targetPort: 1550
