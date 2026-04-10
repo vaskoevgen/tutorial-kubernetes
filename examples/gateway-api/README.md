@@ -145,43 +145,6 @@ curl -X POST http://api.local/payment/webhooks/stripe
 
 ---
 
-## Platform notes
-
-### Linux
-
-Works out of the box. Docker runs natively so the Kind network (e.g. `172.18.x.x` or `172.20.x.x`
-depending on your Docker installation) is directly routable from the host — MetalLB IPs are
-reachable without any extra setup.
-
-### macOS (Docker Desktop)
-
-MetalLB IPs are inside Docker Desktop's Linux VM and are **not** routable from your Mac.
-Use `kubectl port-forward` as a workaround:
-
-```bash
-kubectl port-forward -n default svc/api-gateway-nginx 8080:80
-```
-
-Then test with an explicit `Host` header:
-
-```bash
-curl -H "Host: api.local" http://localhost:8080/
-curl -X POST -H "Host: api.local" http://localhost:8080/payment/webhooks/stripe
-```
-
-### macOS (Colima)
-
-Start Colima with `--network-address` to give the VM a routable IP on your Mac,
-then create the Kind cluster using Colima's Docker socket:
-
-```bash
-colima start --network-address --cpu 4 --memory 8
-DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock" kind create cluster \
-  --name tutorial-cluster --config kind-config.yaml
-```
-
-MetalLB IPs will then be reachable directly from your Mac — no port-forward needed.
-
 ---
 
 ## How it works
@@ -231,10 +194,6 @@ annotations and flags untranslatable configuration with clear warnings.
 ### Install
 
 ```bash
-# Homebrew
-brew install ingress2gateway
-
-# or via Go
 go install github.com/kubernetes-sigs/ingress2gateway@v1.0.0
 ```
 
