@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-cluster
+  namespace: default
+spec:
+  # 1 primary + 2 hot-standby replicas
+  instances: 3
+
+  storage:
+    size: 1Gi
+
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+
+  bootstrap:
+    initdb:
+      # CNPG creates a Secret named postgres-cluster-app with generated credentials
+      database: appdb
+      owner: appuser
