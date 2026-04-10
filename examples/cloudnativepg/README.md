@@ -150,11 +150,18 @@ lets you trigger operator actions without writing YAML.
 ### Install the plugin
 
 ```bash
-# via krew (recommended)
+# via krew
 kubectl krew install cnpg
 
-# or download a binary directly from GitHub releases
-# https://github.com/cloudnative-pg/cloudnative-pg/releases
+# or download the binary directly (no krew required)
+VERSION=$(curl -sSfL https://api.github.com/repos/cloudnative-pg/cloudnative-pg/releases/latest \
+  | grep '"tag_name"' | head -1 | cut -d'"' -f4 | tr -d 'v')
+
+curl -sSfL \
+  "https://github.com/cloudnative-pg/cloudnative-pg/releases/download/v${VERSION}/kubectl-cnpg_${VERSION}_linux_x86_64.tar.gz" \
+  | tar -xz -C /tmp kubectl-cnpg
+
+mv /tmp/kubectl-cnpg ~/.local/bin/   # or: sudo mv /tmp/kubectl-cnpg /usr/local/bin/
 ```
 
 ### Cluster status overview
