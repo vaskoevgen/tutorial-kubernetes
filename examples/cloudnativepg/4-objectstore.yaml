@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-creds
+  namespace: default
+type: Opaque
+stringData:
+  ACCESS_KEY_ID: minioadmin
+  SECRET_ACCESS_KEY: minioadmin
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: my-objectstore
+  namespace: default
+spec:
+  configuration:
+    destinationPath: s3://postgres-backups/
+    endpointURL: http://minio.minio.svc:9000
+    s3Credentials:
+      accessKeyId:
+        name: s3-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: s3-creds
+        key: SECRET_ACCESS_KEY
